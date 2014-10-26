@@ -12,26 +12,28 @@ import time
 
 # user fiddler to debug
 proxy = '127.0.0.1:8888'
+resultFile = "D:/Desktop/result.csv";
 
 def main():
-    books = []
     
     # recursively fetch the books
     nextPage = 'http://book.douban.com/people/aneasystone/wish'
-    html = url_get(nextPage, 'utf-8', proxy)
-    books.extend( parse_books(html) )
-    nextPage = get_next_page(html)
-    return
     while nextPage != None:
-        print 'opening next page: %s' % nextPage
-        time.sleep(5)
+        
+        # open the book list page, and wait 3 seconds
+        print 'opening page: %s' % nextPage
         html = url_get(nextPage, 'utf-8', proxy)
-        books.extend( parse_books(html) )
+        time.sleep(3)
+        
+        # parse the info of books in this page
+        books = parse_books(html)
+        lists = []
+        for book in books:
+            lists.append([ book.title, book.author, book.pages, book.score, book.url ])
+        export_to_csv(resultFile, lists)
+        
+        # continue next page
         nextPage = get_next_page(html)
-    
-    # print all books
-    for book in books:
-        print book.toString()
 
 def parse_books(html):
     
@@ -46,7 +48,6 @@ def parse_books(html):
     books = []
     for url in bookUrls:
         book = parse_book_detail(url)
-        print book.toString()
         books.append(book)
         
     return books
@@ -55,6 +56,7 @@ def parse_book_detail(url):
 
     # fetch the detail html    
     html = url_get(url, 'utf-8', proxy)    
+    print url
     
     # title
     title = ''
@@ -62,15 +64,18 @@ def parse_book_detail(url):
     m = re.search(titleReg, html, re.S|re.I)
     if m != None:
         title = m.group(1)
-        
+    print title
+    
     # info: author, pages
     author = ''
     pages = ''
-    infoReg = u'<span class="pl".*?作者.*?<a.*?>(.*?)</a>.*?<span class="pl".*?页数.*?(\d+)<br>'
+    infoReg = u'<div id="info".*?<span class="pl.*?作者</span>.*?<a.*?>(.*?)</a>.*?<span class="pl".*?页数:</span>.*?(\d+)<br/>'
     m = re.search(infoReg, html, re.S|re.I)
     if m != None:
         author = m.group(1)
         pages = m.group(2)
+    print author
+    print pages
         
     # score
     score = ''
@@ -78,6 +83,7 @@ def parse_book_detail(url):
     m = re.search(scoreReg, html, re.S|re.I)
     if m != None:
         score = m.group(1)
+    print score
     
     return DoubanBook(title, author, pages, score, url)
 
@@ -125,6 +131,18 @@ def url_get(url, encoding='utf-8', proxy=None):
     html = res.read().decode(encoding, errors='ignore')
     res.close()
     return html
+
+def export_to_csv(filePath, lists):
+
+    # convert the lists to csv format
+    lines = []
+    for l in lists:
+        line = '"' + '","'.join(l) + '"\n'
+        lines.append(line)
+        
+    csv = open(filePath, 'a')
+    csv.writelines(lines)
+    csv.close()
 
 class DoubanBook:
     
