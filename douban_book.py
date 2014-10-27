@@ -10,30 +10,44 @@ import urllib2
 import re
 import time
 
-# user fiddler to debug
-proxy = '127.0.0.1:8888'
-resultFile = "D:/Desktop/result.csv";
+# use fiddler to debug
+proxy = None # '127.0.0.1:8888'
+tasks = [
+    { 
+        'url': 'http://book.douban.com/people/aneasystone/do',
+        'file': 'D:/Desktop/do.csv'
+    },
+    { 
+        'url': 'http://book.douban.com/people/aneasystone/collect',
+        'file': 'D:/Desktop/collect.csv'
+    },
+    { 
+        'url': 'http://book.douban.com/people/aneasystone/wish',
+        'file': 'D:/Desktop/wish.csv'
+    }
+]
 
 def main():
     
-    # recursively fetch the books
-    nextPage = 'http://book.douban.com/people/aneasystone/wish'
-    while nextPage != None:
-        
-        # open the book list page, and wait 3 seconds
-        print 'opening page: %s' % nextPage
-        html = url_get(nextPage, 'utf-8', proxy)
-        time.sleep(3)
-        
-        # parse the info of books in this page
-        books = parse_books(html)
-        lists = []
-        for book in books:
-            lists.append([ book.title, book.author, book.pages, book.score, book.url ])
-        export_to_csv(resultFile, lists)
-        
-        # continue next page
-        nextPage = get_next_page(html)
+    for task in tasks:
+        # recursively fetch the books
+        nextPage = task['url']
+        while nextPage != None:
+            
+            # open the book list page, and wait 3 seconds
+            print 'opening page: %s' % nextPage
+            html = url_get(nextPage, 'utf-8', proxy)
+            time.sleep(3)
+            
+            # parse the info of books in this page
+            books = parse_books(html)
+            lists = []
+            for book in books:
+                lists.append([ book.title, book.author, book.pages, book.score, book.url ])
+            export_to_csv(task['file'], lists)
+            
+            # continue next page
+            nextPage = get_next_page(html)
 
 def parse_books(html):
     
@@ -63,18 +77,22 @@ def parse_book_detail(url):
     titleReg = u'<span property="v:itemreviewed">(.*?)</span>'    
     m = re.search(titleReg, html, re.S|re.I)
     if m != None:
-        title = m.group(1)
+        title = m.group(1).encode('GBK', 'ignore')
     print title
     
     # info: author, pages
     author = ''
-    pages = ''
-    infoReg = u'<div id="info".*?<span class="pl.*?作者</span>.*?<a.*?>(.*?)</a>.*?<span class="pl".*?页数:</span>.*?(\d+)<br/>'
-    m = re.search(infoReg, html, re.S|re.I)
+    authorReg = u'<div id="info".*?<span class="pl.*?作者</span>.*?<a.*?>(.*?)</a>'
+    m = re.search(authorReg, html, re.S|re.I)
     if m != None:
-        author = m.group(1)
-        pages = m.group(2)
+        author = m.group(1).encode('GBK', 'ignore')
     print author
+    
+    pages = ''
+    pageReg = u'<div id="info".*?<span class="pl".*?页数:</span>.*?(\d+)<br/>'
+    m = re.search(pageReg, html, re.S|re.I)
+    if m != None:
+        pages = m.group(1).encode('GBK', 'ignore')    
     print pages
         
     # score
@@ -82,7 +100,7 @@ def parse_book_detail(url):
     scoreReg = u'<strong class="ll rating_num.*?([0-9.]+).*?</strong>'
     m = re.search(scoreReg, html, re.S|re.I)
     if m != None:
-        score = m.group(1)
+        score = m.group(1).encode('GBK', 'ignore')
     print score
     
     return DoubanBook(title, author, pages, score, url)
@@ -103,26 +121,27 @@ usage:
 def url_get(url, encoding='utf-8', proxy=None):
     
     # use proxy
-    proxyHandler = urllib2.ProxyHandler({})
     if proxy != None:
-        proxyHandler = urllib2.ProxyHandler({
-            'http': 'http://' + proxy
-        })
-    opener = urllib2.build_opener(proxyHandler)
-    urllib2.install_opener(opener)
+        proxyHandler = urllib2.ProxyHandler({"http" : 'http://' + proxy})
+        opener = urllib2.build_opener(proxyHandler)
+        urllib2.install_opener(opener)
+    else:
+        nonProxyHandler = urllib2.ProxyHandler({})
+        opener = urllib2.build_opener(nonProxyHandler)
+        urllib2.install_opener(opener)
     
     # set http headers
     headers = {
-        'Host': 'book.douban.com',
-        'Connection': 'keep-alive',
-        'Cache-Control': 'no-cache',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Pragma': 'no-cache',
+        #'Host': 'book.douban.com',
+        #'Connection': 'keep-alive',
+        #'Cache-Control': 'no-cache',
+        #'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        #'Pragma': 'no-cache',
         'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36',
-        'Referer': 'http://book.douban.com/people/aneasystone/wish',
-        'Accept-Encoding': 'gzip,deflate,sdch',
-        'Accept-Language': 'zh-CN,zh;q=0.8,en-US;q=0.6,en;q=0.4',
-        'Cookie': 'dbcl2="2029399:WBEnawaXYKs"; ct=y; ck="FrLx"; bid="/2S/YMF0xbk"; __utmt_douban=1; __utmt=1; push_noty_num=0; push_doumail_num=0; __utma=30149280.665181411.1408466728.1414323988.1414328453.35; __utmb=30149280.7.10.1414328453; __utmc=30149280; __utmz=30149280.1408466728.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); __utmv=30149280.202; __utma=81379588.327322834.1408466728.1414323988.1414328453.35; __utmb=81379588.7.10.1414328453; __utmc=81379588; __utmz=81379588.1408466728.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); _pk_id.100001.3ac3=f412f0a360ff8243.1408466728.35.1414331606.1414325593.; _pk_ses.100001.3ac3=*'
+        #'Referer': 'http://book.douban.com/people/aneasystone/wish',
+        #'Accept-Encoding': 'gzip,deflate,sdch',
+        #'Accept-Language': 'zh-CN,zh;q=0.8,en-US;q=0.6,en;q=0.4',
+        #'Cookie': 'dbcl2="2029399:WBEnawaXYKs"; ct=y; ck="FrLx"; bid="/2S/YMF0xbk"; __utmt_douban=1; __utmt=1; push_noty_num=0; push_doumail_num=0; __utma=30149280.665181411.1408466728.1414323988.1414328453.35; __utmb=30149280.7.10.1414328453; __utmc=30149280; __utmz=30149280.1408466728.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); __utmv=30149280.202; __utma=81379588.327322834.1408466728.1414323988.1414328453.35; __utmb=81379588.7.10.1414328453; __utmc=81379588; __utmz=81379588.1408466728.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); _pk_id.100001.3ac3=f412f0a360ff8243.1408466728.35.1414331606.1414325593.; _pk_ses.100001.3ac3=*'
     }
     
     # requesting
@@ -130,6 +149,7 @@ def url_get(url, encoding='utf-8', proxy=None):
     res = urllib2.urlopen(request)
     html = res.read().decode(encoding, errors='ignore')
     res.close()
+    
     return html
 
 def export_to_csv(filePath, lists):
