@@ -25,9 +25,9 @@ def magnet2t(link,tfile):
     
     params = {
              "save_path": 'D:\\Desktop',
-             "storage_mode":lt.storage_mode_t.storage_mode_sparse,
-             "paused": True,
-             "auto_managed": True,
+             #"storage_mode":lt.storage_mode_t.storage_mode_sparse,
+             #"paused": True,
+             #"auto_managed": True,
              "duplicate_is_error": True
            }
 
@@ -37,23 +37,26 @@ def magnet2t(link,tfile):
     while (not handle.has_metadata()):
         time.sleep(5)
         print handle.has_metadata()
-        
+
+    '''        
     print 'got metadata, starting torrent download...'
     while (handle.status().state != lt.torrent_status.seeding):
         s = handle.status()
         state_str = ['queued', 'checking', 'downloading metadata', 'downloading', 'finished', 'seeding', 'allocating']
         print '%.2f%% complete (down: %.1f kb/s up: %.1f kB/s peers: %d) %s %.3f' % (s.progress * 100, s.download_rate / 1000, s.upload_rate / 1000, s.num_peers, state_str[s.state], s.total_download/1000000)
         time.sleep(5)
-  
+    '''
     torinfo = handle.get_torrent_info()
+    torfile = lt.create_torrent(torinfo)
+    torcontent = lt.bencode(torfile.generate())
 
-    fs = lt.file_storage()
-    for f in torinfo.files():
-        fs.add_file(f)
+    #fs = lt.file_storage()
+    #for f in torinfo.files():
+    #    fs.add_file(f)
  
-    torfile = lt.create_torrent(fs)
-    torfile.set_comment(torinfo.comment())
-    torfile.set_creator(torinfo.creator())
+    #torfile = lt.create_torrent(fs)
+    #torfile.set_comment(torinfo.comment())
+    #torfile.set_creator(torinfo.creator())
      
     #for i in xrange(0, torinfo.num_pieces()):
     #    hashes = torinfo.hash_for_piece(i)
@@ -65,16 +68,16 @@ def magnet2t(link,tfile):
     #for http_seed in torinfo.http_seeds():
     #    torfile.add_http_seed(http_seed)
  
-    for node in torinfo.nodes():
-        torfile.add_node(node)
+    #for node in torinfo.nodes():
+    #    torfile.add_node(node)
  
-    for tracker in torinfo.trackers():
-        torfile.add_tracker(tracker)
+    #for tracker in torinfo.trackers():
+    #    torfile.add_tracker(tracker)
  
-    torfile.set_priv(torinfo.priv())
+    #torfile.set_priv(torinfo.priv())
   
     t = open(tfile, "wb")
-    t.write(lt.bencode(torfile.generate()))
+    t.write(torcontent)
     t.close()
     print '%s  generated!'% tfile
  
