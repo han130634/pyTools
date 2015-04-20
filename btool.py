@@ -7,7 +7,11 @@ Created on Sun Apr 19 19:15:34 2015
 
 import libtorrent as lt
 import time
- 
+
+def bt2mag(tfile):
+    info = lt.torrent_info(tfile)
+    print "magnet:?xt=urn:btih:%s&dn=%s" % (info.info_hash(), info.name())
+
 def magnet2t(link,tfile):
     sess = lt.session()
     
@@ -68,11 +72,18 @@ def magnet2t(link,tfile):
     print '%s  generated!'% tfile
  
 def main():
+
+    bt2mag("torrents\\ubuntu.torrent")    
+    magnet2t(
+        'magnet:?xt=urn:btih:1619ecc9373c3639f4ee3e261638f29b33a6cbd6&dn=ubuntu-14.10-desktop-i386.iso', 
+        't.torrent')
+    
+    '''
     magnet2t(
         #'magnet:?xt=urn:btih:51df6808c739174c8f264701ba94460c5238d6ce',
         'magnet:?xt=urn:btih:fd8b1062af0d8c2426cb4d180b86815ffa91b479&dn=Game.of.Thrones.S05E01.HDTV.x264-Xclusive.mp4',
         't.torrent')
-     
+    '''
  
 if __name__ == '__main__':
     main()
