@@ -15,13 +15,13 @@ def bt2mag(tfile):
 def magnet2t(link,tfile):
     sess = lt.session()
     
-    '''
+    #'''
     sess.add_dht_router('router.bittorrent.com', 6881)
     sess.add_dht_router('router.utorrent.com', 6881)
     sess.add_dht_router('router.bitcomet.com', 6881)
     sess.add_dht_router('dht.transmissionbt.com', 6881)
     sess.start_dht();    
-    '''
+    #'''
     
     params = {
              "save_path": 'D:\\Desktop',
@@ -37,9 +37,16 @@ def magnet2t(link,tfile):
     while (not handle.has_metadata()):
         time.sleep(5)
         print handle.has_metadata()
+        
+    print 'got metadata, starting torrent download...'
+    while (handle.status().state != lt.torrent_status.seeding):
+        s = handle.status()
+        state_str = ['queued', 'checking', 'downloading metadata', 'downloading', 'finished', 'seeding', 'allocating']
+        print '%.2f%% complete (down: %.1f kb/s up: %.1f kB/s peers: %d) %s %.3f' % (s.progress * 100, s.download_rate / 1000, s.upload_rate / 1000, s.num_peers, state_str[s.state], s.total_download/1000000)
+        time.sleep(5)
   
     torinfo = handle.get_torrent_info()
-  
+
     fs = lt.file_storage()
     for f in torinfo.files():
         fs.add_file(f)
