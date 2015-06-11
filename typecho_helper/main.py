@@ -10,7 +10,10 @@ import html2text
 # https://pypi.python.org/pypi/MySQL-python/1.2.5
 import MySQLdb
 
+import HTMLParser
+
 import os
+import re
 import codecs
 import configs
 
@@ -78,6 +81,22 @@ def convert_posts_to_markdown(posts):
             
     return posts
 
+def replace_posts_with_code(posts):
+    
+    for p in posts:
+        if p.content:
+            regex = u'(\\[code[^\'"]*?([\'"](.*?)[\'"])?\\](.*?)\\[.*?/code\\])'
+            matches = re.findall(regex, p.content_md, re.S|re.I)
+            for match in matches:
+                code_old = match[0]
+                code_new = '\r\n' 
+                            + '``` ' + match[2] + '\r\n' 
+                            + HTMLParser.HTMLParser().unescape(match[3]) + '\r\n' 
+                            + '```' + '\r\n'
+                p.content_md = p.content_md.replace(code_old, code_new)
+        
+    return posts
+
 def save_posts(posts):
     
     for p in posts:
@@ -114,6 +133,7 @@ def main():
     
     posts = get_all_posts()
     posts = convert_posts_to_markdown(posts)
+    posts = replace_posts_with_code(posts)
     save_posts(posts)
 
     return
