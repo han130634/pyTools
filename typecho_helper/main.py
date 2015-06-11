@@ -89,10 +89,7 @@ def replace_posts_with_code(posts):
             matches = re.findall(regex, p.content_md, re.S|re.I)
             for match in matches:
                 code_old = match[0]
-                code_new = '\r\n' 
-                            + '``` ' + match[2] + '\r\n' 
-                            + HTMLParser.HTMLParser().unescape(match[3]) + '\r\n' 
-                            + '```' + '\r\n'
+                code_new = '\r\n' + '``` ' + match[2] + '\r\n' + HTMLParser.HTMLParser().unescape(match[3]) + '\r\n' + '```' + '\r\n'
                 p.content_md = p.content_md.replace(code_old, code_new)
         
     return posts
