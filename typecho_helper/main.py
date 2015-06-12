@@ -60,10 +60,14 @@ def update_post(post):
         cur = conn.cursor()
         conn.select_db(configs.db)
         
-        sql = 'update typecho_contents set `text` = %s where cid = %d' % post.content_md, post.id
-        cur.execute(sql)
-
+        #cur.execute('SET NAMES utf8')
+        #conn.commit()
+        
+        sql = 'update typecho_contents set `text` = %s where cid = %s'
+        params = (post.content_md, post.id)
+        cur.execute(sql, params)
         conn.commit()
+        
         cur.close()
         conn.close()
             
@@ -134,7 +138,7 @@ def save_posts(posts):
     for p in posts:
         if p.content:
             save_post(p)
-            #update_post(p)
+            update_post(p)
             
     return
 
