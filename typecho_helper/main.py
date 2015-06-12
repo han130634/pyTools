@@ -10,15 +10,19 @@ import html2text
 # https://pypi.python.org/pypi/MySQL-python/1.2.5
 import MySQLdb
 
-import HTMLParser
-
 import os
 import re
+import uuid
 import codecs
 import configs
 
 class Post(object):
     pass
+
+def get_a_uuid():
+    
+    uid = uuid.uuid1()
+    return str(uid)
 
 def get_all_posts():
     
@@ -81,24 +85,54 @@ def convert_posts_to_markdown(posts):
             
     return posts
 
-def replace_posts_with_code(posts):
+def remove_html_entities(html):
+    
+    html = html.replace('&nbsp;', ' ')
+    html = html.replace('&lt;', '<')
+    html = html.replace('&gt;', '>')
+    html = html.replace('&amp;', '&')
+    html = html.replace('&quot;', '"')
+    # other entities
+    
+    return html
+
+def replace_code_with_uuid(posts):
     
     for p in posts:
         if p.content:
             regex = u'(\\[code[^\'"]*?([\'"](.*?)[\'"])?\\](.*?)\\[.*?/code\\])'
-            matches = re.findall(regex, p.content_md, re.S|re.I)
+            matches = re.findall(regex, p.content, re.S|re.I)
+            p.codes = []
+            p.code_uuids = []
             for match in matches:
                 code_old = match[0]
-                code_new = '\r\n' + '``` ' + match[2] + '\r\n' + HTMLParser.HTMLParser().unescape(match[3]) + '\r\n' + '```' + '\r\n'
-                p.content_md = p.content_md.replace(code_old, code_new)
-        
+                uid = get_a_uuid()
+                # replace the old code with uuid
+                p.content = p.content.replace(code_old, uid)
+                # save the new code (markdown code) and uuid
+                # when we done convert html to markdown, we will replace the code uuid back
+                code_new = '``` ' + match[2] + '\r\n' + remove_html_entities(match[3]) + '\r\n' + '```'
+                p.codes.append(code_new)
+                p.code_uuids.append(uid)
+                
     return posts
+
+def replace_uuid_with_code(posts):
+    
+    for p in posts:
+        if p.content:
+            print p.title
+            for idx, uid in enumerate(p.code_uuids):
+                print '%d %s' % (idx, uid)
+                p.content_md = p.content_md.replace(uid, '\r\n' + p.codes[idx] + '\r\n')
+                
+    return posts
+                
 
 def save_posts(posts):
     
     for p in posts:
         if p.content:
-            print p.title
             save_post(p)
             #update_post(p)
             
@@ -129,8 +163,9 @@ def main():
         os.makedirs('files')    
     
     posts = get_all_posts()
+    posts = replace_code_with_uuid(posts)
     posts = convert_posts_to_markdown(posts)
-    posts = replace_posts_with_code(posts)
+    posts = replace_uuid_with_code(posts)
     save_posts(posts)
 
     return
