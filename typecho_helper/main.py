@@ -104,7 +104,7 @@ def replace_code_with_uuid(posts):
     
     for p in posts:
         if p.content:
-            regex = u'(\\[code[^\'"]*?([\'"](.*?)[\'"])?\\](.*?)\\[.*?/code\\])'
+            regex = u'(\\[code[^\'"]*?([\'"](.*?)[\'"])?\\](.*?)\\[[^[]*?/code\\])'
             matches = re.findall(regex, p.content, re.S|re.I)
             p.codes = []
             p.code_uuids = []
